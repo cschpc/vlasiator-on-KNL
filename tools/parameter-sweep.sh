@@ -5,12 +5,12 @@ ulimit -c unlimited
 # Run parameters - please edit
 #####################################################################################################
 
-range_hyperthreads="4 2"
-range_processes="1 2 4 8 16 32 64"
+range_hyperthreads="4" #"4 2"
+range_processes="4" #"1 2 4 8 16 32 64"
 range_i_mpi_pin_order="compact"
 range_kmp_affinity="compact scatter balanced"
 mpilibrary="openmpi"                          #openmpi or intel
-forcemcdram=1                                 #0 or 1, adds numactl -m 1 command before binary if 1
+forcemcdram="0 1"                             #"0","1" or "0 1". If 1 it adds numactl -m 1 command 
 
 #####################################################################################################
 # Define code - please edit
@@ -18,9 +18,8 @@ forcemcdram=1                                 #0 or 1, adds numactl -m 1 command
 
 bin="vlasiator" # we assume that the binary is in the folder where the script is executed
 parameters="--run_config=magnetosphere.cfg"  #run parameters
-
 testfolder="tests" #folder where tests are stored
-test="small" #name of test folder in testfolder
+tests="small medium large" #name of test folders within testfolder (multiple allowes)
 
 #function for computing performance (perf) and execution time (time). Executed in run folder
 function get_perf()
@@ -50,14 +49,6 @@ memMode=$(cat ${hwloc_file} | sed -n -e 's/^.*memory_mode: //p');
 cache=$(cat ${hwloc_file} | sed -n -e 's/^.*cache_size: //p');
 clusterMode=$( grep "cluster_mode:" ${hwloc_file} |sed -n -e 's/^.*cluster_mode: //p');
 
-#add mcdram mode
-
-if [ $forcemcdram -eq 1 ]
-then
-    numactlcommand="numactl -m 1"
-else
-    numactlcommand=""
-fi
 
 
 rootfolder=$(pwd)
@@ -67,9 +58,6 @@ then
 fi
 cd runs
 runsfolder=$(pwd)
-
-echo "Runs done in $runsfolder"
-echo "Test is ${rootfolder}/${testfolder}/${test}"
 
 if [ ! -e  ${runsfolder}/performance.txt ]
 then
@@ -89,52 +77,68 @@ do
 		threads=$(( $ht * 64 / $processes ))
 		
 		echo "$processes processes, $ht ht, $threads threads"
-		export OMP_NUM_THREADS=$threads
-		
+		export OMP_NUM_THREADS=$threads		
 		export KMP_HW_SUBSET=${ht}T
 		export KMP_AFFINITY=$taff	
 		export I_MPI_PIN_ORDER=$impo
-		dir="${memMode}_${clusterMode}_p${processes}_t${threads}_ht${ht}_mpo-${impo}_ka-${taff}"
-		echo $dir
-		if [ -e $dir ] 
-		    then
-		    if [ -e ${dir}_old ]
-		    then
-			rm -rf ${dir}_old 
-		    fi
-		    mv $dir ${dir}_old
-		    echo "Moving existing folder $dir to ${dir}_old (overwriting if it already exists)"
-		fi
-		mkdir $dir
-		cd $dir
-		#link all input files
-		ln -s ${rootfolder}/${testfolder}/${test}/* .
 
-		if [ "$mpilibrary" == "openmpi" ]
-		then
-		    if [ $processes -ne 64 ]; then
-			echo  "mpirun -cpus-per-proc $cpusperproc  -np $processes  ${numactlcommand} ${rootfolder}/${bin} $parameters"
-			mpirun -cpus-per-proc $cpusperproc  -np $processes  ${numactlcommand} ${rootfolder}/${bin} $parameters 2> errors.txt > out.txt 
+
+		for test in ${tests}
+		do
+		    for fm in  $forcemcdram 
+		    do
+			#add mcdram mode
+			if [ $fm -eq 1 ]
+			then
+			    numactlcommand="numactl -m 1"
+			else
+			    numactlcommand=""
+			fi
+
+			dir="${memMode}_${clusterMode}_p${processes}_t${threads}_ht${ht}_mpo-${impo}_ka-${taff}"
+			echo $dir
+			if [ -e $dir ] 
+			then
+			    if [ -e ${dir}_old ]
+			    then
+				rm -rf ${dir}_old 
+			    fi
+			    mv $dir ${dir}_old
+			    echo "Moving existing folder $dir to ${dir}_old (overwriting if it already exists)"
+			fi
+			mkdir $dir
+			cd $dir
+			#link all input files
+			ln -s ${rootfolder}/${testfolder}/${test}/* .
+
+			if [ "$mpilibrary" == "openmpi" ]
+			then
+			    if [ $processes -ne 64 ]; then
+				echo  "mpirun -cpus-per-proc $cpusperproc  -np $processes  ${numactlcommand} ${rootfolder}/${bin} $parameters"
+				mpirun -cpus-per-proc $cpusperproc  -np $processes  ${numactlcommand} ${rootfolder}/${bin} $parameters 2> errors.txt > out.txt 
+				
+			    else
+				echo "mpirun --bind-to core  -np $processes ${numactlcommand} ${rootfolder}/${bin} $parameters "
+				mpirun --bind-to core  -np $processes ${numactlcommand} ${rootfolder}/${bin} $parameters  2> errors.txt > out.txt
+			    fi
+			fi
+			if [ "$mpilibrary" == "intel" ]
+			then
+			    mpirun -np $processes  ${numactlcommand} ${rootfolder}/${bin} $parameters 2> errors.txt > out.txt
+			fi
 			
-		    else
-			echo "mpirun --bind-to core  -np $processes ${numactlcommand} ${rootfolder}/${bin} $parameters "
-			mpirun --bind-to core  -np $processes ${numactlcommand} ${rootfolder}/${bin} $parameters  2> errors.txt > out.txt
-		    fi
-		fi
-		if [ "$mpilibrary" == "intel" ]
-		then
-		    mpirun -np $processes  ${numactlcommand} ${rootfolder}/${bin} $parameters 2> errors.txt > out.txt
-		fi
-		
-		#execute function to get perf
-		get_perf
-
-		cd ${runsfolder}
-		
-		#tot-mflups mflups time
-		echo $test $memMode $forcemcdram $clusterMode $I_MPI_PIN_ORDER $KMP_AFFINITY $processes $threads $ht $time  $perf  
-		echo $test $memMode $forcemcdram $clusterMode $I_MPI_PIN_ORDER $KMP_AFFINITY $processes $threads $ht $time  $perf >> ${runsfolder}/performance.txt
+			#execute function to get perf
+			get_perf
+			cd ${runsfolder}
+			
+			#tot-mflups mflups time
+			echo $test $memMode $fm $clusterMode $I_MPI_PIN_ORDER $KMP_AFFINITY $processes $threads $ht $time  $perf  
+			echo $test $memMode $fm $clusterMode $I_MPI_PIN_ORDER $KMP_AFFINITY $processes $threads $ht $time  $perf >> ${runsfolder}/performance.txt
+		    done
+		done
 	    done
 	done
     done
 done 
+
+
