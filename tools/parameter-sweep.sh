@@ -5,8 +5,8 @@ ulimit -c unlimited
 # Run parameters - please edit
 #####################################################################################################
 
-range_hyperthreads="4" #"4 2"
-range_processes="4" #"1 2 4 8 16 32 64"
+range_hyperthreads="4 2 1"
+range_processes="1 2 4 8 16 32 64"
 range_i_mpi_pin_order="compact"
 range_kmp_affinity="compact scatter balanced"
 mpilibrary="openmpi"                          #openmpi or intel
