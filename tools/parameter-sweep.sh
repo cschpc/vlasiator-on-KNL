@@ -90,8 +90,18 @@ do
 			#add mcdram mode
 			if [ $fm -eq 1 ]
 			then
-			    numactlcommand="numactl -m 1"
-			    #TODO - if SNC-4 mode then the command needs to be numactl -m 1,3,5,7 
+			    if [ "$clusterMode" == "Quadrant" ]
+			    then
+				numactlcommand="numactl -m 1"
+			    fi
+			    if [ "$clusterMode" == "SNC4" ]
+			    then
+				numactlcommand="numactl -m 4,5,6,7"
+			    fi
+			    if [ "$clusterMode" == "SNC2" ]
+			    then
+				numactlcommand="numactl -m 2,3"
+			    fi
 			else
 			    numactlcommand=""
 			fi
