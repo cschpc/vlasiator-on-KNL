@@ -91,11 +91,12 @@ do
 			if [ $fm -eq 1 ]
 			then
 			    numactlcommand="numactl -m 1"
+			    #TODO - if SNC-4 mode then the command needs to be numactl -m 1,3,5,7 
 			else
 			    numactlcommand=""
 			fi
 
-			dir="${memMode}_${clusterMode}_p${processes}_t${threads}_ht${ht}_mpo-${impo}_ka-${taff}"
+			dir="${test}_${memMode}_mcdram-${fm}_${clusterMode}_mpo-${impo}_ka-${taff}_p${processes}_t${threads}_ht${ht}"
 			echo $dir
 			if [ -e $dir ] 
 			then
