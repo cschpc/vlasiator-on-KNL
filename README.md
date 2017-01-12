@@ -106,6 +106,12 @@ millions of cell updates per second, and higher is better. These were
 run with 16 MPI processes, each spawning 16 threads.
 
 
+
+**Table 1.** Performance in units of millions of cell updates per
+  second, comparing 256 bit long single precision vectors (VEC8F), or
+  512 bit long vectors (VEC512F). Fallback is a simple loop based
+  approach relying on compiler vectorization.
+
 |            | Fallback   | VEC8F  | VEC16F
 |------------|------------|--------|-------------
 |    small   |        30  |     65 |       80
@@ -121,9 +127,18 @@ using AVX512 intrinsics.
 
 Vlasiator does a lot of dynamic memory allocation and deallocation,
 and performance is affected byt the chosen allocator. Here we compare
-the default allocator, jemalloc 4.2.1 and tbbmalloc. These tests were
+the default allocator, jemalloc 4.2.1 and tbbmalloc. 
+
+Tbbmalloc was enabled by linking against it, with the following options to the linker:
+```
+-L$(TBBROOT)/lib/intel64/gcc4.7/ -ltbbmalloc_proxy -ltbbmalloc
+```
+
+**Table 2.** Performance in units of millions of cell updates per
+  second, comparing three different memory allocators. These tests were
 run with 16 MPI processes, each spawning 16 threads, and supporting
 AVX512 using Agner's vectorclass.
+
 
 |            | malloc     | jemalloc|  tbbmalloc
 |------------|------------|---------|-------------
@@ -132,9 +147,9 @@ AVX512 using Agner's vectorclass.
 |    large   |     109    |     117 |         147
 
 
-It can be seen that for small systems all allocators have similar
-performance, but for larger datasets tbbmalloc is clearly superior on
-KNL.
+It can be seen in Table 2 that for small systems all allocators have
+similar performance, but for larger datasets tbbmalloc is clearly
+superior on KNL.
 
 
 ### Optimal run parameters
@@ -145,6 +160,9 @@ code with 4 threads per core, 256 threads in total, varying the number
 of processes. These tests were run with the optimal choices from
 above, so with AVX512 support using Agner's vectorclass and tbbmalloc.
 
+**Table 3.** Performance in units of millions of cell updates per
+  second, comparing different balance between processes and
+  threads. The header shows #processes x #threads
 
 |            | 1 x 256  | 2 x 128 |  4 x 64  |  8 x 32 | 16 x 16 | 32 x 8 | 64 x 4
 |------------|----------|---------|----------|---------|---------|--------|-----
@@ -164,6 +182,9 @@ Furthermore we investigated the effect of hyperthreads, and 4 threads
 per core was clearly the optimal choice. For medium and large test
 cases 4 threads per core was almost twice as fast as 1.
 
+**Table 4.** Performance in units of millions of cell updates per
+  second, comparing the performance when running 16 processes, and
+  varying the number of threads per core.
 
 |            | 1          |  2      |   4
 |------------|------------|---------|-------------
@@ -183,10 +204,14 @@ the cache mode is the correct choice for Vlastiator.
 
 ### Performance comparison
 
-In the table below we have compared the performance of Vlasiator on
+In table 5 we have compared the performance of Vlasiator on
 the Xeon Phi test platform, to its performance on one node on
-Sisu.csc.fi. On this machine each node has two 2.6 GHz Haswell
-processor, each with 12 cores.
+Sisu.csc.fi. 
+
+**Table 5.** Performance in units of millions of cell updates per
+  second, comparing the performance of the Xeon Phi to the performanc
+  obtained on a node with two 2.6 GHz Haswell processor, each with 12
+  cores.
 
 |            |  Xeon Phi |  Xeon 
 |------------|------------|---------
