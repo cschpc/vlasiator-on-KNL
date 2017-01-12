@@ -78,6 +78,8 @@ real space weather simulation, that fits on one node. The "small" case
 uses 1 GB of memory, the "medium" case uses 8 GB of memory and the
 "large" case 40 GB of memory.
 
+The scripts used in running the various experiments below are in the
+[tools](/tools) folder.
 
 ### Compiler options and vectorization 
 
@@ -225,10 +227,14 @@ for actual science runs, the Xeon node is 47% faster.
 
 ## Conclusions
 
-We have shown that the code is able to use AVX512 vector instructions,
-and to be able to employ the MPI + OpenMP paralellization well on the
-processor. Fruthermore, the dynamic memory utilization benefitted from
-tbbmalloc.
+We have shown that for Vlasiator the following factors were important
+for performance: 
+
+ * Use AVX512 vector instructions, In Vlasiator's case through Agner's vectorclass.
+ * 4 hyperthreads was optimal, hiding bottlencks related to memory accesses.
+ * Usee tbbmalloc to get more efficient dynamical memory handling.
+ * Cache mode is best for production runs.
+
 
 The performance is still not competitive with a normal Xeon node, but
 there is still hope for improving the situation. By re-structuring the
