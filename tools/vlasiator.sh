@@ -4,8 +4,7 @@
 #####################################################################################################
 
 bindir=$(pwd) 
-#bins="vlasiator_rv_1 vlasiator_rv_2 vlasiator_rv_3  vlasiator_rv_4 vlasiator_rv_5"
-bins="vlasiator_rv_6"
+bins="vlasiator_rv_1 vlasiator_rv_2 vlasiator_rv_3  vlasiator_rv_4 vlasiator_rv_5"
 
  # Binary name (with absolute path)
 parameters="--run_config=magnetosphere.cfg"  #run parameters
